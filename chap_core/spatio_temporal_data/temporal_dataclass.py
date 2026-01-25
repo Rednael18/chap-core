@@ -19,7 +19,7 @@ from ..datatypes import (
 )
 from ..geometry import Polygons
 from ..time_period import PeriodRange, Month
-from ..time_period.date_util_wrapper import TimeStamp, clean_timestring, Week
+from ..time_period.date_util_wrapper import TimePeriod, TimeStamp, clean_timestring, Week
 import dataclasses
 from typing import TypeVar
 from pydantic import BaseModel
@@ -372,8 +372,11 @@ class DataSet(Generic[FeaturesT]):
             if isinstance(time_element, str) or isinstance(time_element, Number):
                 # if time periods are string, clean them and convert to periods
                 data["time_period"] = data["time_period"].apply(clean_timestring)
-
-            data_dict[location] = dataclass.from_pandas(data.sort_values(by="time_period"), fill_missing)
+            data = data.sort_values(
+                by="time_period",
+                key=lambda s: s.map(lambda x: TimePeriod.parse(str(x)).start_timestamp.date),
+            )
+            data_dict[location] = dataclass.from_pandas(data, fill_missing)
         data_dict = cls._fill_missing(data_dict)
 
         if non_string_locations:
