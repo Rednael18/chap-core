@@ -33,6 +33,8 @@ theme:
 
 plugins:
   - search
+  - multirepo:
+      cleanup: true
   - mkdocstrings:
       handlers:
         python:
@@ -62,9 +64,14 @@ nav:
       - Installation: modeling-app/installation.md
       - Using the App: modeling-app/modeling-app.md
       - Server Deployment: modeling-app/running-chap-on-server.md
+      - "Using the modeling app":
+          - Getting started: "modeling-app/using-the-modeling-app/getting-started"
+          - Creating an evaluation: "modeling-app/using-the-modeling-app/creating-an-evaluation"
+          - Creating a prediction: "modeling-app/using-the-modeling-app/creating-a-prediction"
+      - Managing models: modeling-app/managing-model-templates.md
   - Model Developers:
+      - Overview: external_models/index.md
       - Model developers:
-          - Overview: external_models/index.md
           - Getting Started:
               - For Newcomers: external_models/newcomer.md
               - For Experienced Modellers: external_models/experienced_modeller.md
@@ -84,13 +91,17 @@ nav:
           - Setup: chap-cli/chap-core-cli-setup.md
           - Evaluation Workflow: chap-cli/evaluation-workflow.md
           - evaluate2 Reference: chap-cli/evaluate2-reference.md
+
+  #- Modeling App:
+  #  - '!import https://github.com/dhis2-chap/chap-frontend?branch=main&docs_dir=apps/modeling-app/docs'
   - Contributors:
+      - Overview: contributor/index.md
       - Contributors:
-          - Overview: contributor/index.md
           - Getting Started: contributor/getting_started.md
           - Setup: contributor/chap-contributor-setup.md
           - Windows Setup: contributor/windows_contributors.md
           - Code Overview: contributor/code_overview.md
+          - MLproject Configuration: contributor/mlproject_configuration.md
           - Vocabulary: contributor/vocabulary.md
           - Testing: contributor/testing.md
           - Database Migrations: contributor/database_migrations.md
