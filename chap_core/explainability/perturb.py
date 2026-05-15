@@ -112,7 +112,7 @@ class RandomBackground:
     def sample(self, hist_df: pd.DataFrame, indices: tuple[int, int], feature_name: str, length: int):
         locations = self.dataset["location"].dropna().unique().tolist()
 
-        for _ in range(3):  # Retries twice if selected window is too narrow
+        for _ in range(10):
             loc = self.rng.choice(locations)
             loc_df: pd.DataFrame = self.dataset[self.dataset["location"] == loc]
 

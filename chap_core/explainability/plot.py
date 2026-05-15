@@ -38,7 +38,7 @@ def plot_importance(
 
     max_temp = max((abs(v) for inner in temp_columns.values() for v in inner.values()), default=0.0)
     max_static = max((abs(v) for v in static_columns.values()), default=0.0)
-    max_val = max(max_temp, max_static, 1.0)
+    max_val = max(max_temp, max_static) or 1.0
 
     cmap = plt.cm.RdYlGn
     norm = mcolors.Normalize(vmin=-max_val, vmax=max_val)

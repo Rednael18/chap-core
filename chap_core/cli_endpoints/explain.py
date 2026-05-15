@@ -24,7 +24,7 @@ class LimeParams(BaseModel):
     """Configuration for the LIME explainability pipeline."""
 
     granularity: int = 10
-    num_perturbations: int = 300
+    num_perturbations: int = 1000
     surrogate_name: str = "ridge"
     segmenter_name: str = "uniform"
     sampler_name: str = "background"

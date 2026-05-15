@@ -503,9 +503,11 @@ def generate_adaptive_candidate_masks(
 def build_dtw_sequence(
     hist_df: pd.DataFrame,
     features_hist: list[str],
+    temporal_cols: list[str] | None = None,
 ) -> np.ndarray:
     # TODO: Only handling temporal columns... what to do with static?
-    temporal_cols = [f for f in features_hist if not is_constant(hist_df, f)]
+    if temporal_cols is None:
+        temporal_cols = [f for f in features_hist if not is_constant(hist_df, f)]
     seq = hist_df[temporal_cols].to_numpy(dtype=float)
     # NaN-check
     mask = ~np.isfinite(seq)
@@ -559,24 +561,35 @@ def produce_lime_dataset(
     """
     results: list[tuple[dict[str, float], float]] = []
     distance_sequences = []
-    x0_sequence = build_dtw_sequence(hist_df, features_hist)
+    # Derive temporal_cols once from the original hist_df so all perturbed sequences use the
+    # same column set regardless of whether a perturbed feature happens to be constant.
+    dtw_temporal_cols = [f for f in features_hist if not is_constant(hist_df, f)]
+    x0_sequence = build_dtw_sequence(hist_df, features_hist, temporal_cols=dtw_temporal_cols)
 
     try:
         # Batch prediction by pseudo-location
         for i in range(0, len(perturbations), chunk_size):
             chunk = perturbations[i : i + chunk_size]
             chunk_masks = perturbation_masks[i : i + len(chunk)]
+            real_size = len(chunk)
+
+            # Pad to chunk_size so models that infer n_locations get consistent
+            # dimension input - we don't save the padded results
+            if real_size < chunk_size:
+                pad = chunk_size - real_size
+                chunk = chunk + [chunk[0]] * pad
 
             full_hist_dict = {}
             full_fut_dict = {}
             pert_map = {}
             seq_map = {}
 
-            logger.info(f"Processing prediction chunk {i // chunk_size + 1} ({len(chunk)} perturbations)...")
+            logger.info(f"Processing prediction chunk {i // chunk_size + 1} ({real_size} perturbations)...")
             for j, pb in enumerate(chunk):
                 # Predict multiple outputs at once by assigning input data to different "locations" in same df
                 loc_id = f"pb_{i + j}"
-                pert_map[loc_id] = chunk_masks[j]
+                if j < real_size:
+                    pert_map[loc_id] = chunk_masks[j]
                 new_hist, new_fut = convert_vector_to_dataset(
                     pb, hist_df, future_df, features_hist, features_fut, horizon, hist_type, fut_type, feat_indices
                 )
@@ -584,6 +597,7 @@ def produce_lime_dataset(
                 seq_map[loc_id] = build_dtw_sequence(
                     new_hist.to_pandas().sort_values("time_period").reset_index(drop=True),
                     features_hist,
+                    temporal_cols=dtw_temporal_cols,
                 )
                 full_hist_dict[loc_id] = new_hist.get_location(location)
                 full_fut_dict[loc_id] = new_fut.get_location(location)
@@ -619,6 +633,7 @@ def produce_lime_dataset(
             seq = build_dtw_sequence(
                 new_hist.to_pandas().sort_values("time_period").reset_index(drop=True),
                 features_hist,
+                temporal_cols=dtw_temporal_cols,
             )
             hist_dict = {loc: full_dataset[loc] for loc in full_dataset.locations()}
             hist_dict[location] = new_hist.get_location(location)
@@ -791,10 +806,10 @@ def explain(
     location: str,
     horizon: int,
     granularity: int = 10,
-    num_perturbations: int = 300,
-    surrogate_name: str = "ridge",
+    num_perturbations: int = 1000,
+    surrogate_name: str = "bayesian",
     segmenter_name: str = "uniform",
-    sampler_name: str = "background",
+    sampler_name: str = "random",
     weighter_name: str = "pairwise",
     last_n: int | None = None,
     seed: int | None = None,
@@ -991,8 +1006,8 @@ def explain(
     x0_row = np.ones(X.shape[1], dtype=float)
 
     # 3/4 * sqrt(num_features) is the most common kernel width in LIME papers
-    # TODO: Can be automatically inferred per paper "initial step towards stable" et.c.
-    kw = 0.75 * np.sqrt(X.shape[1])
+    # But we use KW from LIMESegment which is more conservative
+    kw = 0.296 * np.sqrt(X.shape[1])
 
     weighter = disambiguate_weighter(weighter_name, kw)
     weights = compute_local_weights(weighter, X, x0_row, distance_sequences, x0_sequence)
@@ -1133,10 +1148,10 @@ def explain_adaptive(
     location: str,
     horizon: int,
     granularity: int = 10,
-    num_perturbations: int = 300,
-    surrogate_name: str = "ridge",
+    num_perturbations: int = 1000,
+    surrogate_name: str = "bayesian",
     segmenter_name: str = "uniform",
-    sampler_name: str = "background",
+    sampler_name: str = "random",
     weighter_name: str = "pairwise",
     last_n: int | None = None,
     seed: int | None = None,
