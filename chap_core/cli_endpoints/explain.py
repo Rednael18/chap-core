@@ -25,9 +25,9 @@ class LimeParams(BaseModel):
 
     granularity: int = 10
     num_perturbations: int = 1000
-    surrogate_name: str = "ridge"
+    surrogate_name: str = "bayesian"
     segmenter_name: str = "uniform"
-    sampler_name: str = "background"
+    sampler_name: str = "random"
     weighter_name: str = "pairwise"
     seed: int | None = None
     timed: bool = False
